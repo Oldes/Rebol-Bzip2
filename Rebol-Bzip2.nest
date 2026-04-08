@@ -1,0 +1,186 @@
+;-    .-.                                                                       
+;-   /'v'\   SISKIN-Builder project file                                        
+;-  (/uOu\)  https://github.com/Siskin-framework/Builder/                       
+;-===="="=======================================================================
+
+github: libarchive/bzip2 ;%v1.0.0 ;= optional branch name
+
+version: 0.0.1
+
+;include:  %bzip2/
+
+compiler: clang
+arch:     x64
+optimize: 2
+
+define: USE_TRACES
+
+;- options common for all Rebol extensions ----------------------
+#if Windows? [
+	define: _CRT_SECURE_NO_WARNINGS
+	define: _USE_MATH_DEFINES
+	define: TO_WINDOWS
+	upx:    on
+	strip:  on
+]
+#if Linux? [
+	compiler: gcc
+]
+
+target-x86: [
+	arch: x86
+]
+target-x64: [
+	arch: x64
+	defines: [
+		_FILE_OFFSET_BITS=64
+		__LP64__       ; has long (integer) 64 bits
+	]
+	#if macOS?   [ flag: "-arch x86_64" ]
+]
+target-arm64: [
+	arch: arm64
+	#if Linux? [
+		flag: "-arch arm64"
+	]
+	#if macOS? [
+		flag: "-target arm64-apple-darwin"
+	]
+	define: _FILE_OFFSET_BITS=64
+	define: __LP64__   ; has long (integer) 64 bits
+	define: __arm64__
+]
+target-armv7: [
+	arch: armv7
+	flag: "-march=armv7"
+]
+;----------------------------------------------------------------
+r3-extension: [
+	flags:  shared
+
+	include: %bzip2
+	include: %"$SISKIN_INSTALL/include"
+	library: [%"$SISKIN_INSTALL/lib/" %bz2_static]
+
+	strip:  on
+
+	files: [
+		%src/bzip2-commands.c
+		%src/bzip2-commands-table.c
+		%src/bzip2-rebol-extension.c
+	]
+	#if macOS? [
+		lflags:  [-dynamiclib]
+		flag:    -mmacosx-version-min=10.9
+		compiler: clang
+	]
+	#if Posix? [
+		cflags: [-fPIC -pthread]
+		libraries: [%pthread]
+	]
+	#if Windows? [
+		upx: on
+	]
+	;- generate main extension header --------------------------------
+	do %src/bzip2-rebol-extension.r3 
+]
+
+eggs: [
+	#if Windows? [
+		"Make Bzip2 static library (cmake) - x86" [
+			arch: x86
+			name: %static-lib-x86
+			cmd %_static_win_x86/ "cmake ../bzip2/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON"
+			cmd %_static_win_x86/ {cmake --build . --config release -j 8}
+		]
+		"Make Bzip2 static library (cmake) - x64" [
+			arch: x64
+			name: %static-lib-x64
+			cmd %_static_win_x64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON"
+			cmd %_static_win_x64/ {cmake --build . --config release -j 8}
+		]
+		"Make Bzip2 static library (cmake) - arm64" [
+			arch: arm64
+			name: %static-lib-arm64
+			cmd %_static_win_arm64/ "cmake ../bzip2/ -A ARM64 -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON"
+			cmd %_static_win_arm64/ {cmake --build . --config release -j 8}
+		]
+
+		"Rebol Bzip2 extension: win32_x86" [
+			name: %bzip2-windows-x86
+			:target-x86
+			:r3-extension
+			libraries: [%_static_win_x86/Release/ %bz2_static]
+		]
+		"Rebol Bzip2 extension: win32_x64" [
+			name: %bzip2-windows-x64
+			:target-x64
+			:r3-extension
+			libraries: [%_static_win_arm64/Release/ %bz2_static]
+		]
+		"Rebol Bzip2 extension: arm64" [
+			name: %bzip2-windows-arm64
+			:target-x64
+			:r3-extension
+			libraries: [%_static_win_arm64/Release/ %bz2_static]
+		]
+	]
+	#if macOS? [
+		"Make Bzip2 static library (cmake) - x64" [
+			name: %static-lib-x64
+			arch: x64
+			cmd %_static_mac_x64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+			cmd %_static_mac_x64/ {cmake --build .}
+		]
+		"Make Bzip2 static library (cmake) - arm64" [
+			name: %static-lib-arm64
+			arch: arm64
+			cmd %_static_mac_arm64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+			cmd %_static_mac_arm64/ {cmake --build .}
+		]
+		"Rebol Bzip2 extension: macos_x64" [
+			name: %bzip2-macos-x64
+			:target-x64
+			:r3-extension
+			libraries: [%_static_win_x64/ %bz2_static]
+		]
+		"Rebol Bzip2 extension: macos_arm64" [
+			name: %bzip2-macos-arm64
+			:target-arm64
+			:r3-extension
+			libraries: [%_static_win_arm64/ %bz2_static]
+		]
+	]
+	#if Linux? [
+		"Make Bzip2 static library (cmake) - x64" [
+			name: %static-lib-x64
+			arch: x64
+			cmd %_static_nix_x64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+			cmd %_static_nix_x64/ {cmake --build .}
+		]
+		"Make Bzip2 static library (cmake) - arm64" [
+			name: %static-lib-arm64
+			arch: arm64
+			cmd %_static_nix_arm64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+			cmd %_static_nix_arm64/ {cmake --build .}
+		]
+		"Rebol Bzip2 extension:linux_x64" [
+			name: %bzip2-linux-x64
+			:target-x64
+			:r3-extension
+			libraries: [%_static_nix_x64/ %bz2_static]
+		]
+		"Rebol Bzip2 extension: linux_arm64" [
+			name: %bzip2-linux-arm64
+			:target-arm64
+			:r3-extension
+			libraries: [%_static_nix_arm64/ %bz2_static]
+		]
+	;	"Rebol Bzip2 extension: linux_armv7" [
+	;		name: %bzip2-linux-armv7
+	;		:target-armv7
+	;		:r3-extension
+	;	]
+	]
+]
+

@@ -1,0 +1,109 @@
+name: 'Rebol-Bzip2 CI'
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+    paths:
+      - src/**
+      - Rebol-Bzip2.nest
+      - .github/workflows/main.yml
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Siskin Builder
+      uses: oldes/install-siskin@v0.20.5
+
+    - name: Build 64bit static Bzip2 library
+      run: ./siskin Rebol-Bzip2.nest static-lib-x64
+
+    - name: Build 64bit Rebol/Bzip2 extension
+      run: ./siskin Rebol-Bzip2.nest -o ./bzip2-windows-x64.rebx --msvc bzip2-windows-x64
+
+    - name: Minimal Rebol/Bzip2 extension test
+      run:  ./siskin --script ci-test.r3
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Rebol-Bzip2-Windows-CI-${{github.run_id}}
+        path: ./*.rebx
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Siskin Builder
+      uses: oldes/install-siskin@v0.20.5
+
+    - name: Build 64bit static Bzip2 library
+      run: ./siskin Rebol-Bzip2.nest static-lib-x64
+
+    - name: Build 64bit Rebol/Bzip2 extension
+      run: ./siskin Rebol-Bzip2.nest bzip2-linux-x64
+
+    - name: Prepare 64bit Rebol Bzip2 extension
+      run:  mv ./build/bzip2-linux-x64.so ./bzip2-linux-x64.rebx
+
+    - name: Minimal Rebol/Bzip2 extension test
+      run:  ./siskin --script ci-test.r3
+
+    - name: Compress 64bit Rebol/Bzip2 extension
+      run:  gzip -9 ./bzip2-linux-x64.rebx
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Rebol-Bzip2-Linux-CI-${{github.run_id}}
+        path: ./*.gz
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Siskin Builder
+      uses: oldes/install-siskin@v0.20.5
+
+    - name: Build 64bit static Bzip2 library
+      run: ./siskin Rebol-Bzip2.nest static-lib-x64
+
+    - name: Build 64bit Rebol/Bzip2 extension
+      run: ./siskin Rebol-Bzip2.nest %bzip2-macos-x64
+
+    - name: Prepare 64bit Rebol Bzip2 extension
+      run:  mv ./build/bzip2-macos-x64.dylib ./bzip2-macos-x64.rebx
+
+    - name: Build 64bit static Bzip2 library
+      run: ./siskin Rebol-Bzip2.nest static-lib-arm64
+
+    - name: Build 64bit Rebol/Bzip2 extension
+      run: ./siskin Rebol-Bzip2.nest bzip2-macos-arm64
+
+    - name: Prepare 64bit Rebol Bzip2 extension
+      run:  mv ./build/bzip2-macos-arm64.dylib ./bzip2-macos-arm64.rebx
+
+    - name: Minimal Rebol/Bzip2 extension test
+      run:  ./siskin --script ci-test.r3
+
+    - name: Compress x64 Rebol/Bzip2 extension
+      run:  gzip -9 ./bzip2-macos-x64.rebx
+
+    - name: Compress arm64 Rebol/Bzip2 extension
+      run:  gzip -9 ./bzip2-macos-arm64.rebx
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Rebol-Bzip2-macOS-CI-${{github.run_id}}
+        path: ./*.gz
+
