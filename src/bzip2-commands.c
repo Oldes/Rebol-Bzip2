@@ -224,8 +224,9 @@ static int decompress_bzip2_impl(
 
 		if (ret == BZ_OUTBUFF_FULL) {
 			if (limit != NO_LIMIT) {
-				if (error) *error = ret;
-				return FALSE;
+				/* /size: return truncated output instead of failing */
+				SERIES_TAIL(*output) = (REBLEN)out_len;
+				return TRUE;
 			}
 			{
 				REBU64 next = out_len << 2;
@@ -512,7 +513,8 @@ COMMAND cmd_read(RXIFRM *frm, void *ctx) {
 	s = &ctxx->strm;
 
 	if (hob->sym == Handle_Bzip2Encoder && !ctxx->lib_closed) {
-		for (;;) {
+		/* Prevent infinite loops if the library reports no progress. */
+		for (int i = 0; i < 1000; i++) {
 			REBLEN tail = SERIES_TAIL(buffer);
 			if (!bzip2_ensure_avail_out(buffer, 4096))
 				RETURN_ERROR(ERR_NO_COMPRESS);
@@ -522,6 +524,8 @@ COMMAND cmd_read(RXIFRM *frm, void *ctx) {
 			ret = BZ2_bzCompress(s, BZ_FLUSH);
 			SERIES_TAIL(buffer) = (REBLEN)((REBYTE *)s->next_out - BIN_HEAD(buffer));
 			if (ret == BZ_FLUSH_OK)
+				break;
+			if ((REBLEN)SERIES_TAIL(buffer) == tail && (ret == BZ_RUN_OK || ret == BZ_FLUSH_OK))
 				break;
 			if (ret < 0 || ret == BZ_SEQUENCE_ERROR)
 				RETURN_ERROR(ERR_NO_COMPRESS);

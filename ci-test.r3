@@ -73,7 +73,7 @@ ensure "decompress garbage errors" error? try [bzip2/decompress garbage]
 ;; --- streaming (bz_stream) -----------------------------------------------
 stream-msg: copy "hello-bzip2-stream"
 st-ok: false
-if not error? try [
+unless error? try [
     enc: bzip2/make-encoder
     sbin: bzip2/write/finish :enc copy stream-msg
     dec: bzip2/make-decoder
@@ -87,28 +87,23 @@ if not error? try [
         stream-msg = to string! decompress sbin 'bzip2
         stream-msg = to string! dbin
     ]
-][
-    ;; try failed
-    st-ok: false
 ]
 ensure "streaming encoder/decoder round-trip" st-ok
 
 ;; Encoder: several writes then one finish (single bzip2 stream)
 mw-ok: false
-if not error? try [
+unless error? try [
     e3: bzip2/make-encoder
     bzip2/write :e3 "chunk-"
     bzip2/write :e3 "stream-"
     bout: bzip2/write/finish :e3 "test"
     mw-ok: all [binary? bout  "chunk-stream-test" = to string! decompress bout 'bzip2]
-][
-    mw-ok: false
 ]
 ensure "streaming encoder multi-write + finish" mw-ok
 
 ;; Encoder: read after partial write, then write/finish; join compressed chunks
 rd-ok: false
-if not error? try [
+unless error? try [
     e4: bzip2/make-encoder
     bzip2/write :e4 "read-"
     b1: bzip2/read :e4
@@ -121,14 +116,12 @@ if not error? try [
         bad2
         "read-path" = to string! decompress joined 'bzip2
     ]
-][
-    rd-ok: false
 ]
 ensure "streaming encoder read + finish + join" rd-ok
 
 ;; Decoder: split compressed input across two writes
 spl-ok: false
-if not error? try [
+unless error? try [
     sb: compress "split-decode-test" 'bzip2
     cut: 1 + mod length? sb 11
     p1: copy/part sb cut
@@ -138,8 +131,6 @@ if not error? try [
     bzip2/write :d3 p2
     out3: bzip2/read :d3
     spl-ok: ("split-decode-test" = to string! out3)
-][
-    spl-ok: false
 ]
 ensure "streaming decoder split compressed input" spl-ok
 
