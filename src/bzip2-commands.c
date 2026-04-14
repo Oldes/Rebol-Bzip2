@@ -19,6 +19,10 @@ static const REBYTE* ERR_NO_COMPRESS   = (const REBYTE*)"Bzip2 compression faile
 static const REBYTE* ERR_NO_DECOMPRESS = (const REBYTE*)"Bzip2 decompression failed.";
 static const REBYTE* ERR_BAD_SIZE      = (const REBYTE*)"Invalid output size limit (/size).";
 
+/* One-shot decompress: grow output until BZ_OK or non-recoverable error. */
+#define BZIP2_DECOMP_MAX_ATTEMPTS 32
+#define BZIP2_DECOMP_MAX_OUT ((REBU64)MAX_I32)
+
 COMMAND cmd_init_words(RXIFRM *frm, void *ctx) {
 	arg_words  = RL_MAP_WORDS(RXA_SERIES(frm,1));
 	type_words = RL_MAP_WORDS(RXA_SERIES(frm,2));
@@ -86,47 +90,83 @@ COMMAND cmd_compress(RXIFRM *frm, void *ctx) {
 
 int DecompressBzip2(const REBYTE *input, REBLEN len, REBCNT limit, REBSER **output, REBINT *error) {
 	REBU64 out_len;
+	REBCNT attempt;
+	int ret;
+	unsigned int destLen;
+	REBSER *ser;
 
-	out_len = (limit != NO_LIMIT) ? (REBU64)limit : (REBU64)len << 2;
+	if (limit != NO_LIMIT) {
+		out_len = (REBU64)limit;
+	} else {
+		out_len = (REBU64)len << 2;
+		if (len != 0 && out_len < (REBU64)len)
+			out_len = BZIP2_DECOMP_MAX_OUT;
+	}
 
 	if (out_len == 0) {
-		*output = RL_MAKE_BINARY(1);
+		ser = RL_MAKE_BINARY(1);
+		if (!ser) {
+			if (error) *error = BZ_MEM_ERROR;
+			*output = NULL;
+			return FALSE;
+		}
+		*output = ser;
 		return TRUE;
 	}
-	if (out_len > MAX_I32) out_len = MAX_I32;
-	*output = RL_MAKE_BINARY((REBLEN)out_len);
 
-	unsigned int destLen = (unsigned int)SERIES_REST(*output);
+	if (out_len > BZIP2_DECOMP_MAX_OUT)
+		out_len = BZIP2_DECOMP_MAX_OUT;
 
-	int ret = BZ2_bzBuffToBuffDecompress(
-		(char *)BIN_HEAD(*output), &destLen,
-		(char *)input, (unsigned int)len,
-		0,
-		0
-	);
-
-	if (ret == BZ_OUTBUFF_FULL && limit == NO_LIMIT) {
-		out_len = MIN((REBU64)out_len << 2, (REBU64)MAX_I32);
-		*output = RL_MAKE_BINARY((REBLEN)out_len);
+	for (attempt = 0; attempt < BZIP2_DECOMP_MAX_ATTEMPTS; attempt++) {
+		ser = RL_MAKE_BINARY((REBLEN)out_len);
+		if (!ser) {
+			if (error) *error = BZ_MEM_ERROR;
+			*output = NULL;
+			return FALSE;
+		}
+		*output = ser;
 		destLen = (unsigned int)SERIES_REST(*output);
 
 		ret = BZ2_bzBuffToBuffDecompress(
 			(char *)BIN_HEAD(*output), &destLen,
 			(char *)input, (unsigned int)len,
-			0, 0
+			0,
+			0
 		);
-	}
 
-	if (ret != BZ_OK) {
+		if (ret == BZ_OK) {
+			if (limit != NO_LIMIT && destLen > (unsigned int)limit)
+				destLen = (unsigned int)limit;
+			SERIES_TAIL(*output) = (REBLEN)destLen;
+			return TRUE;
+		}
+
+		if (ret == BZ_OUTBUFF_FULL) {
+			if (limit != NO_LIMIT) {
+				if (error) *error = ret;
+				return FALSE;
+			}
+			{
+				REBU64 next = out_len << 2;
+				if (next < out_len)
+					next = BZIP2_DECOMP_MAX_OUT;
+				if (next > BZIP2_DECOMP_MAX_OUT)
+					next = BZIP2_DECOMP_MAX_OUT;
+				if (next <= out_len) {
+					if (error) *error = ret;
+					return FALSE;
+				}
+				out_len = next;
+				continue;
+			}
+		}
+
 		if (error) *error = ret;
 		return FALSE;
 	}
 
-	if (limit != NO_LIMIT && destLen > (unsigned int)limit)
-		destLen = (unsigned int)limit;
-
-	SERIES_TAIL(*output) = (REBLEN)destLen;
-	return TRUE;
+	if (error) *error = BZ_OUTBUFF_FULL;
+	return FALSE;
 }
 
 COMMAND cmd_decompress(RXIFRM *frm, void *ctx) {
