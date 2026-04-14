@@ -15,4 +15,8 @@ MyCommandPointer Command[] = {
 	cmd_version,
 	cmd_compress,
 	cmd_decompress,
+	cmd_make_encoder,
+	cmd_make_decoder,
+	cmd_write,
+	cmd_read,
 };

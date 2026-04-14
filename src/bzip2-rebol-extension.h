@@ -22,13 +22,8 @@
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
 
-typedef struct ctx_bzip2_t {
-	// Some context to be used.
-	float     volume;
-	RXICBI    callback;
-} ctx_bzip2_t;
-
-extern REBCNT Handle_Bzip2;
+extern REBCNT Handle_Bzip2Encoder;
+extern REBCNT Handle_Bzip2Decoder;
 
 extern u32* arg_words;
 extern u32* type_words;
@@ -38,6 +33,10 @@ enum ext_commands {
 	CMD_BZIP2_VERSION,
 	CMD_BZIP2_COMPRESS,
 	CMD_BZIP2_DECOMPRESS,
+	CMD_BZIP2_MAKE_ENCODER,
+	CMD_BZIP2_MAKE_DECODER,
+	CMD_BZIP2_WRITE,
+	CMD_BZIP2_READ,
 };
 
 
@@ -45,6 +44,10 @@ int cmd_init_words(RXIFRM *frm, void *ctx);
 int cmd_version(RXIFRM *frm, void *ctx);
 int cmd_compress(RXIFRM *frm, void *ctx);
 int cmd_decompress(RXIFRM *frm, void *ctx);
+int cmd_make_encoder(RXIFRM *frm, void *ctx);
+int cmd_make_decoder(RXIFRM *frm, void *ctx);
+int cmd_write(RXIFRM *frm, void *ctx);
+int cmd_read(RXIFRM *frm, void *ctx);
 
 enum ma_arg_words {W_ARG_0
 };
@@ -54,11 +57,15 @@ enum ma_type_words {W_TYPE_0
 typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 
 #define BZIP2_EXT_INIT_CODE \
-	"REBOL [Title: \"Rebol Bzip2 Extension\" Name: Bzip2 Type: module Version: 0.1.0 Needs: 3.20.5 Author: Oldes Date: 8-Apr-2026/17:02:48 License: MIT Url: https://github.com/Oldes/Rebol-Bzip2]\n"\
+	"REBOL [Title: \"Rebol Bzip2 Extension\" Name: Bzip2 Type: module Version: 1.1.0 Needs: 3.20.5 Author: Oldes Date: 14-Apr-2026/7:02:37 License: MIT Url: https://github.com/Oldes/Rebol-Bzip2]\n"\
 	"init-words: command [args [block!] type [block!]]\n"\
-	"version: command [\"Native Bzip2 version\"]\n"\
-	"compress: command [\"Compress data using Zstandard\" data [binary! any-string!] \"Input data to compress.\" /part \"Limit the input data to a given length.\" length [integer!] \"Length of input data.\" /level quality [integer!] \"Compression level from 1 to 22.\"]\n"\
-	"decompress: command [\"Decompress data using Zstandard\" data [binary! any-string!] \"Input data to decompress.\" /part \"Limit the input data to a given length.\" length [integer!] \"Length of input data.\" /size \"Limit the output size.\" bytes [integer!] \"Maximum number of uncompressed bytes.\"]\n"\
+	"version: command [\"Libbzip2 version string (BZ2_bzlibVersion)\"]\n"\
+	"compress: command [\"Compress data using bzip2\" data [binary! any-string!] \"Input data to compress.\" /part \"Limit the input data to a given length.\" length [integer!] \"Length of input data.\" /level quality [integer!] \"Block size 100k: 1 (fast) to 9 (best).\"]\n"\
+	"decompress: command [\"Decompress bzip2 data\" data [binary! any-string!] \"Input data to decompress.\" /part \"Limit the input data to a given length.\" length [integer!] \"Length of input data.\" /size \"Limit the output size.\" bytes [integer!] \"Maximum number of uncompressed bytes.\" /max \"Cap allocated output (ZIP bomb guard).\" ceiling [integer!] \"Maximum bytes to allocate while decompressing.\"]\n"\
+	"make-encoder: command [\"Create a new bzip2 encoder handle.\" /level quality [integer!] \"Block size 100k: 1 (fast) to 9 (best).\"]\n"\
+	"make-decoder: command [\"Create a new bzip2 decoder handle.\"]\n"\
+	"write: command [\"Feed data into a bzip2 streaming codec.\" codec [handle!] \"Encoder or decoder handle.\" data [binary! any-string! none!] {Data to compress or decompress, or NONE to finish encoder output.} /flush \"Flush encoder output (BZ_FLUSH).\" /finish \"Finish encoder stream (BZ_FINISH).\"]\n"\
+	"read: command [\"Retrieve pending data from the codec buffer.\" codec [handle!]]\n"\
 	"init-words [][]\n"\
 	"protect/hide 'init-words\n"\
 	"\n"
