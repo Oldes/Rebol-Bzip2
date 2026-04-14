@@ -18,6 +18,7 @@
 static const REBYTE* ERR_NO_COMPRESS   = (const REBYTE*)"Bzip2 compression failed.";
 static const REBYTE* ERR_NO_DECOMPRESS = (const REBYTE*)"Bzip2 decompression failed.";
 static const REBYTE* ERR_BAD_SIZE      = (const REBYTE*)"Invalid output size limit (/size).";
+static const REBYTE* ERR_BAD_MAX       = (const REBYTE*)"Invalid /max (must be >= 0).";
 
 /* One-shot decompress: grow output until BZ_OK or non-recoverable error. */
 #define BZIP2_DECOMP_MAX_ATTEMPTS 32
@@ -88,19 +89,38 @@ COMMAND cmd_compress(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-int DecompressBzip2(const REBYTE *input, REBLEN len, REBCNT limit, REBSER **output, REBINT *error) {
+/* Core one-shot decompress; max_alloc 0 means use BZIP2_DECOMP_MAX_OUT cap only. */
+static int decompress_bzip2_impl(
+	const REBYTE *input,
+	REBLEN len,
+	REBCNT limit,
+	REBU64 max_alloc,
+	REBSER **output,
+	REBINT *error
+) {
+	REBU64 cap = BZIP2_DECOMP_MAX_OUT;
 	REBU64 out_len;
 	REBCNT attempt;
 	int ret;
 	unsigned int destLen;
 	REBSER *ser;
 
+	if (max_alloc != 0) {
+		if (max_alloc > BZIP2_DECOMP_MAX_OUT)
+			max_alloc = BZIP2_DECOMP_MAX_OUT;
+		cap = max_alloc;
+	}
+
 	if (limit != NO_LIMIT) {
 		out_len = (REBU64)limit;
+		if (out_len > cap)
+			out_len = cap;
 	} else {
 		out_len = (REBU64)len << 2;
 		if (len != 0 && out_len < (REBU64)len)
-			out_len = BZIP2_DECOMP_MAX_OUT;
+			out_len = cap;
+		if (out_len > cap)
+			out_len = cap;
 	}
 
 	if (out_len == 0) {
@@ -113,9 +133,6 @@ int DecompressBzip2(const REBYTE *input, REBLEN len, REBCNT limit, REBSER **outp
 		*output = ser;
 		return TRUE;
 	}
-
-	if (out_len > BZIP2_DECOMP_MAX_OUT)
-		out_len = BZIP2_DECOMP_MAX_OUT;
 
 	for (attempt = 0; attempt < BZIP2_DECOMP_MAX_ATTEMPTS; attempt++) {
 		ser = RL_MAKE_BINARY((REBLEN)out_len);
@@ -149,9 +166,9 @@ int DecompressBzip2(const REBYTE *input, REBLEN len, REBCNT limit, REBSER **outp
 			{
 				REBU64 next = out_len << 2;
 				if (next < out_len)
-					next = BZIP2_DECOMP_MAX_OUT;
-				if (next > BZIP2_DECOMP_MAX_OUT)
-					next = BZIP2_DECOMP_MAX_OUT;
+					next = cap;
+				if (next > cap)
+					next = cap;
 				if (next <= out_len) {
 					if (error) *error = ret;
 					return FALSE;
@@ -169,12 +186,18 @@ int DecompressBzip2(const REBYTE *input, REBLEN len, REBCNT limit, REBSER **outp
 	return FALSE;
 }
 
+/* Registered with Rebol as codec decoder (DECOMPRESS_FUNC). */
+int DecompressBzip2(const REBYTE *input, REBLEN in_len, REBLEN out_limit, REBSER **output, REBINT *error) {
+	return decompress_bzip2_impl(input, in_len, (REBCNT)out_limit, 0, output, error);
+}
+
 COMMAND cmd_decompress(RXIFRM *frm, void *ctx) {
 	REBSER *data    = RXA_SERIES(frm, 1);
 	REBINT index    = RXA_INDEX(frm, 1);
 	REBFLG ref_part = RXA_REF(frm, 2);
 	REBI64 length   = SERIES_TAIL(data) - index;
 	REBCNT limit_u  = NO_LIMIT;
+	REBU64 max_alloc = 0;
 	REBSER *output  = NULL;
 	REBINT  error   = 0;
 
@@ -195,7 +218,15 @@ COMMAND cmd_decompress(RXIFRM *frm, void *ctx) {
 		}
 	}
 
-	if (!DecompressBzip2((const REBYTE*)BIN_SKIP(data, index), (REBLEN)length, limit_u, &output, &error)) {
+	if (RXA_REF(frm, 6)) {
+		REBI64 ma = RXA_INT64(frm, 7);
+		if (ma < 0) {
+			RETURN_ERROR(ERR_BAD_MAX);
+		}
+		max_alloc = (ma > (REBI64)MAX_I32) ? (REBU64)MAX_I32 : (REBU64)ma;
+	}
+
+	if (!decompress_bzip2_impl((const REBYTE*)BIN_SKIP(data, index), (REBLEN)length, limit_u, max_alloc, &output, &error)) {
 		RETURN_ERROR(ERR_NO_DECOMPRESS);
 	}
 

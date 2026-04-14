@@ -50,5 +50,16 @@ if (length? cap) > 20 [
     quit/return 1
 ]
 
+;; /max: large cap must still round-trip; tiny cap must error
+full: bzip2/decompress/max bin (10 * 1024 * 1024)
+if full <> to binary! str [
+    print as-red "FAIL: decompress/max large cap"
+    quit/return 1
+]
+unless error? try [bzip2/decompress/max bin 48][
+    print as-red "FAIL: decompress/max tiny cap should error"
+    quit/return 1
+]
+
 print as-green "OK: Rebol/Bzip2 CI tests passed"
 quit/return 0

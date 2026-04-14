@@ -17,7 +17,7 @@ RL_LIB *RL; // Link back to reb-lib from embedded extensions
 extern MyCommandPointer Command[];
 
 int CompressBzip2(const REBYTE *input, REBLEN len, REBCNT level, REBSER **output, REBINT *error);
-int DecompressBzip2(const REBYTE *input, REBLEN len, REBCNT limit, REBSER **output, REBINT *error);
+int DecompressBzip2(const REBYTE *input, REBLEN in_len, REBLEN out_limit, REBSER **output, REBINT *error);
 
 u32* arg_words;
 u32* type_words;

@@ -37,4 +37,6 @@ Decompress bzip2 data
 * `length` `[integer!]` Length of input data.
 * `/size` Limit the output size.
 * `bytes` `[integer!]` Maximum number of uncompressed bytes.
+* `/max` Cap allocated output (ZIP bomb guard).
+* `ceiling` `[integer!]` Maximum bytes to allocate while decompressing.
 
