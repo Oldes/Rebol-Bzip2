@@ -11,16 +11,16 @@ REBOL [
 commands: [
 	init-words:    [args [block!] type [block!]] ;; used internaly only!
 	;; Basic commands.
-	version: ["Native Bzip2 version"]
+	version: ["Libbzip2 version string (BZ2_bzlibVersion)"]
 	compress: [
-		"Compress data using Zstandard"
+		"Compress data using bzip2"
 		data [binary! any-string!] "Input data to compress."
 		/part                      "Limit the input data to a given length."
 		 length [integer!]         "Length of input data."
-		/level quality [integer!]  "Compression level from 1 to 22."
+		/level quality [integer!]  "Block size 100k: 1 (fast) to 9 (best)."
 	]
 	decompress: [
-		"Decompress data using Zstandard"
+		"Decompress bzip2 data"
 		data [binary! any-string!] "Input data to decompress."
 		/part                      "Limit the input data to a given length."
 		 length [integer!]         "Length of input data."
@@ -68,7 +68,7 @@ type-words: [
 reb-code: ajoin [
 	{REBOL [Title: "Rebol Bzip2 Extension"}
 	{ Name: Bzip2 Type: module}
-	{ Version: 0.1.0}
+	{ Version: 1.1.0}
 	{ Needs: 3.20.5} ;; May be higher if needed!
 	{ Author: Oldes}
 	{ Date: } now/utc
@@ -161,14 +161,6 @@ header: {$logo
 #define MIN_REBOL_UPD 5
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
-
-typedef struct ctx_bzip2_t {
-	// Some context to be used.
-	float     volume;
-	RXICBI    callback;
-} ctx_bzip2_t;
-
-extern REBCNT Handle_Bzip2;
 
 extern u32* arg_words;
 extern u32* type_words;

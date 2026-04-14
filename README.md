@@ -18,19 +18,20 @@ txt: to string! decompress bin 'bzip2
 
 ## Extension commands:
 
+
 #### `version`
-Native Bzip2 version
+Libbzip2 version string (BZ2_bzlibVersion)
 
 #### `compress` `:data`
-Compress data using Zstandard
+Compress data using bzip2
 * `data` `[binary! any-string!]` Input data to compress.
 * `/part` Limit the input data to a given length.
 * `length` `[integer!]` Length of input data.
 * `/level`
-* `quality` `[integer!]` Compression level from 1 to 9.
+* `quality` `[integer!]` Block size 100k: 1 (fast) to 9 (best).
 
 #### `decompress` `:data`
-Decompress data using Zstandard
+Decompress bzip2 data
 * `data` `[binary! any-string!]` Input data to decompress.
 * `/part` Limit the input data to a given length.
 * `length` `[integer!]` Length of input data.
