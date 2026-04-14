@@ -16,8 +16,13 @@ RL_LIB *RL; // Link back to reb-lib from embedded extensions
 //==== Globals ===============================================================//
 extern MyCommandPointer Command[];
 
+REBCNT Handle_Bzip2Encoder;
+REBCNT Handle_Bzip2Decoder;
+
 int CompressBzip2(const REBYTE *input, REBLEN len, REBCNT level, REBSER **output, REBINT *error);
 int DecompressBzip2(const REBYTE *input, REBLEN in_len, REBLEN out_limit, REBSER **output, REBINT *error);
+int Common_mold(REBHOB *hob, REBSER *str);
+int Bzip2Handle_free(void *hndl);
 
 u32* arg_words;
 u32* type_words;
@@ -42,6 +47,18 @@ RXIEXT const char *RX_Init(int opts, RL_LIB *lib) {
 	if (!CHECK_STRUCT_ALIGN) {
 		trace("CHECK_STRUCT_ALIGN failed!");
 		return 0;
+	}
+
+	{
+		REBHSP spec;
+		spec.mold = Common_mold;
+		spec.size = sizeof(void *);
+		spec.flags = HANDLE_REQUIRES_HOB_ON_FREE;
+		spec.free = Bzip2Handle_free;
+		spec.get_path = NULL;
+		spec.set_path = NULL;
+		Handle_Bzip2Encoder = RL_REGISTER_HANDLE_SPEC((REBYTE*)"bzip2-encoder", &spec);
+		Handle_Bzip2Decoder = RL_REGISTER_HANDLE_SPEC((REBYTE*)"bzip2-decoder", &spec);
 	}
 
 	RL_REGISTER_COMPRESS_METHOD(cb_cast("bzip2"), CompressBzip2, DecompressBzip2);

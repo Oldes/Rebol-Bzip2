@@ -91,8 +91,8 @@ Mirror layout and behavior from Zstd where it reduces surprise:
 
 ## Phase 6 — Tests + docs
 
-1. **`ci-test.r3`**: add a **minimal** streaming block (short string, two-step compress, decompress via decoder) — subset of `Rebol-Zstd/ci-test.r3` streaming section.
-2. **`README.md`**: “Streaming API” section with a short example (adapt from Zstd README).
+1. **`ci-test.r3`**: minimal **encoder `write/finish` → codec decompress** and **decoder `write` + `read`** round-trip (see current `ci-test.r3`).
+2. **`README.md`**: regenerated command list includes streaming commands; add a dedicated **Streaming API** prose section when you want copy-paste examples (optional).
 
 ---
 

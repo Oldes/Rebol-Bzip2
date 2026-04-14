@@ -70,6 +70,29 @@ ensure "decompress/max negative errors" error? try [bzip2/decompress/max bin -1]
 garbage: #{425A683181E8FFFFFF} ;; bzip2-like header, invalid stream body
 ensure "decompress garbage errors" error? try [bzip2/decompress garbage]
 
+;; --- streaming (bz_stream) -----------------------------------------------
+stream-msg: copy "hello-bzip2-stream"
+st-ok: false
+if not error? try [
+    enc: bzip2/make-encoder
+    sbin: bzip2/write/finish :enc copy stream-msg
+    dec: bzip2/make-decoder
+    bzip2/write :dec sbin
+    dbin: bzip2/read :dec
+    st-ok: all [
+        handle? enc
+        binary? sbin
+        handle? dec
+        binary? dbin
+        stream-msg = to string! decompress sbin 'bzip2
+        stream-msg = to string! dbin
+    ]
+][
+    ;; try failed
+    st-ok: false
+]
+ensure "streaming encoder/decoder round-trip" st-ok
+
 ;; --- summary ---------------------------------------------------------------
 either errors = 0 [
     print as-green "OK: all Rebol/Bzip2 tests passed"

@@ -40,3 +40,22 @@ Decompress bzip2 data
 * `/max` Cap allocated output (ZIP bomb guard).
 * `ceiling` `[integer!]` Maximum bytes to allocate while decompressing.
 
+#### `make-encoder`
+Create a new bzip2 encoder handle.
+* `/level`
+* `quality` `[integer!]` Block size 100k: 1 (fast) to 9 (best).
+
+#### `make-decoder`
+Create a new bzip2 decoder handle.
+
+#### `write` `:codec` `:data`
+Feed data into a bzip2 streaming codec.
+* `codec` `[handle!]` Encoder or decoder handle.
+* `data` `[binary! any-string! none!]` Data to compress or decompress, or NONE to finish encoder output.
+* `/flush` Flush encoder output (BZ_FLUSH).
+* `/finish` Finish encoder stream (BZ_FINISH).
+
+#### `read` `:codec`
+Retrieve pending data from the codec buffer.
+* `codec` `[handle!]`
+

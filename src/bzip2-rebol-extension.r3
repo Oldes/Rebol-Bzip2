@@ -29,12 +29,40 @@ commands: [
 		/max                       "Cap allocated output (ZIP bomb guard)."
 		 ceiling [integer!]       "Maximum bytes to allocate while decompressing."
 	]
+
+	;; Streaming API (bz_stream)
+	make-encoder: [
+		"Create a new bzip2 encoder handle."
+		/level quality [integer!] "Block size 100k: 1 (fast) to 9 (best)."
+	]
+
+	make-decoder: [
+		"Create a new bzip2 decoder handle."
+	]
+
+	write: [
+		"Feed data into a bzip2 streaming codec."
+		codec [handle!] "Encoder or decoder handle."
+		data  [binary! any-string! none!] "Data to compress or decompress, or NONE to finish encoder output."
+		/flush  "Flush encoder output (BZ_FLUSH)."
+		/finish "Finish encoder stream (BZ_FINISH)."
+	]
+
+	read: [
+		"Retrieve pending data from the codec buffer."
+		codec [handle!]
+	]
 ]
 
 ext-values: {}
 
 handles: make map! [
-; not used
+	bzip2-encoder: [
+		"bzip2 incremental compression handle"
+	]
+	bzip2-decoder: [
+		"bzip2 incremental decompression handle"
+	]
 ]
 
 arg-words:   copy []
@@ -163,6 +191,9 @@ header: {$logo
 #define MIN_REBOL_UPD 5
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
+
+extern REBCNT Handle_Bzip2Encoder;
+extern REBCNT Handle_Bzip2Decoder;
 
 extern u32* arg_words;
 extern u32* type_words;
