@@ -86,19 +86,35 @@ eggs: [
 		"Make Bzip2 static library (cmake) - x86" [
 			arch: x86
 			name: %static-lib-x86
-			cmd %_static_win_x86/ "cmake ../bzip2/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON"
+			cmd %_static_win_x86/ [
+				"cmake ../bzip2/ -A Win32"
+				" -D ENABLE_LIB_ONLY=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
 			cmd %_static_win_x86/ {cmake --build . --config release -j 8}
 		]
 		"Make Bzip2 static library (cmake) - x64" [
 			arch: x64
 			name: %static-lib-x64
-			cmd %_static_win_x64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON"
+			cmd %_static_win_x64/ [
+				"cmake ../bzip2/"
+				" -D ENABLE_LIB_ONLY=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
 			cmd %_static_win_x64/ {cmake --build . --config release -j 8}
 		]
 		"Make Bzip2 static library (cmake) - arm64" [
 			arch: arm64
 			name: %static-lib-arm64
-			cmd %_static_win_arm64/ "cmake ../bzip2/ -A ARM64 -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON"
+			cmd %_static_win_arm64/ [
+				"cmake ../bzip2/ -A ARM64"
+				" -DCMAKE_BUILD_TYPE=Release"
+				" -D ENABLE_LIB_ONLY=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
 			cmd %_static_win_arm64/ {cmake --build . --config release -j 8}
 		]
 
@@ -125,13 +141,33 @@ eggs: [
 		"Make Bzip2 static library (cmake) - x64" [
 			name: %static-lib-x64
 			arch: x64
-			cmd %_static_mac_x64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+			cmd %_static_mac_x64/ [
+				"cmake ../bzip2/"
+				" -D CMAKE_BUILD_TYPE=Release"
+				" -D CMAKE_OSX_ARCHITECTURES=x86_64"
+				" -D CMAKE_POSITION_INDEPENDENT_CODE=ON"
+				" -D CMAKE_OSX_SYSROOT=macosx"
+				" -D CMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+				" -D ENABLE_LIB_ONLY=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
 			cmd %_static_mac_x64/ {cmake --build .}
 		]
 		"Make Bzip2 static library (cmake) - arm64" [
 			name: %static-lib-arm64
 			arch: arm64
-			cmd %_static_mac_arm64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+			cmd %_static_mac_arm64/ [
+				"cmake ../bzip2/"
+				" -D CMAKE_BUILD_TYPE=Release"
+				" -D CMAKE_OSX_ARCHITECTURES=arm64"
+				" -D CMAKE_POSITION_INDEPENDENT_CODE=ON"
+				" -D CMAKE_OSX_SYSROOT=macosx"
+				" -D CMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+				" -D ENABLE_LIB_ONLY=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
 			cmd %_static_mac_arm64/ {cmake --build .}
 		]
 		"Rebol Bzip2 extension: macos_x64" [
@@ -148,17 +184,50 @@ eggs: [
 		]
 	]
 	#if Linux? [
+		"Make Bzip2 static library (cmake) - x86" [
+			name: %static-lib-x86
+			arch: x64
+			cmd %_static_nix_x86/ [
+				"cmake ../bzip2/"
+				" -D CMAKE_BUILD_TYPE=Release"
+				" -D CMAKE_POSITION_INDEPENDENT_CODE=ON"
+				" -D CMAKE_C_FLAGS=-m32"
+				" -D ENABLE_LIB_ONLY=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
+			cmd %_static_nix_x86/ {cmake --build .}
+		]
 		"Make Bzip2 static library (cmake) - x64" [
 			name: %static-lib-x64
 			arch: x64
-			cmd %_static_nix_x64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+			cmd %_static_nix_x64/ [
+				"cmake ../bzip2/"
+				" -D CMAKE_BUILD_TYPE=Release"
+				" -D CMAKE_POSITION_INDEPENDENT_CODE=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_LIB_ONLY=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
 			cmd %_static_nix_x64/ {cmake --build .}
 		]
 		"Make Bzip2 static library (cmake) - arm64" [
 			name: %static-lib-arm64
 			arch: arm64
-			cmd %_static_nix_arm64/ "cmake ../bzip2/ -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LIB=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+			cmd %_static_nix_arm64/ [
+				"cmake ../bzip2/"
+				" -D CMAKE_BUILD_TYPE=Release"
+				" -D CMAKE_POSITION_INDEPENDENT_CODE=ON"
+				" -D ENABLE_STATIC_LIB=ON"
+				" -D ENABLE_SHARED_LIB=OFF"
+			]
 			cmd %_static_nix_arm64/ {cmake --build .}
+		]
+		"Rebol Bzip2 extension:linux_x86" [
+			name: %bzip2-linux-x86
+			:target-x86
+			:r3-extension
+			libraries: [%_static_nix_x86/ %bz2_static]
 		]
 		"Rebol Bzip2 extension:linux_x64" [
 			name: %bzip2-linux-x64
